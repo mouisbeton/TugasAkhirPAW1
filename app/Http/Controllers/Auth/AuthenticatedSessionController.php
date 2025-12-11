@@ -12,33 +12,26 @@ use Illuminate\View\View;
 class AuthenticatedSessionController extends Controller
 {
     /**
-     * Display the login view.
+     * Menampilkan halaman login.
      */
     public function create(): View
     {
         return view('auth.login');
     }
 
-    /**
-     * Handle an incoming authentication request.
-     */
     public function store(LoginRequest $request): RedirectResponse
     {
         $request->authenticate();
-
         $request->session()->regenerate();
 
-        // LOGIKA REDIRECT BERDASARKAN ROLE
-        if (Auth::user()->isAdmin()) {
-            return redirect()->intended(route('admin.dashboard'));
+        // LOGIKA PAKSAAN
+        if ($request->user()->isAdmin()) {
+            return redirect()->route('dashboard'); 
         }
-
-        return redirect()->intended(route('dashboard'));
+        
+        return redirect()->route('student.dashboard');
     }
 
-    /**
-     * Destroy an authenticated session.
-     */
     public function destroy(Request $request): RedirectResponse
     {
         Auth::guard('web')->logout();
