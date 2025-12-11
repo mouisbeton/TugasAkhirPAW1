@@ -9,38 +9,34 @@ use Illuminate\Support\Facades\Auth;
 
 class MessageController extends Controller
 {
-    // 1. Tampilkan Daftar Pesan Masuk (INBOX)
     public function index()
     {
-        // Ambil semua pesan yang receiver_id-nya adalah User yang sedang login
         $messages = Message::where('receiver_id', Auth::id())
-                            ->with('sender') // Load data pengirim biar namanya muncul
-                            ->latest()       // Urutkan dari yang terbaru
+                            ->with('sender')
+                            ->latest()
                             ->get();
 
         return view('messages.index', compact('messages'));
     }
 
-    // 2. Baca Detail Pesan
     public function show($id)
     {
-        // Cari pesan, pastikan yang buka adalah penerima yang sah
         $message = Message::where('id', $id)
-                          ->where('receiver_id', Auth::id())
+                          ->where(function($query) {
+                              $query->where('receiver_id', Auth::id())
+                                    ->orWhere('sender_id', Auth::id());
+                          })
                           ->firstOrFail();
 
-        // Tandai sudah dibaca
-        if (!$message->is_read) {
+        if ($message->receiver_id == Auth::id() && !$message->is_read) {
             $message->update(['is_read' => true]);
         }
 
         return view('messages.show', compact('message'));
     }
 
-    // 3. Tampilkan Form Buat Pesan (Khusus Dosen)
     public function create()
     {
-        // Cek Double Security: Hanya Dosen yang boleh akses form ini
         if (Auth::user()->role !== 'dosen') {
             abort(403, 'Hanya Dosen yang boleh mengirim pesan.');
         }
@@ -56,7 +52,7 @@ class MessageController extends Controller
         return view('dosen.messages.create', compact('dosen', 'angkatan'));
     }
 
-    // 4. Proses Kirim Pesan
+    // 4. Proses Kirim Pesan (Broadcast Logic)
     public function store(Request $request)
     {
         $request->validate([
@@ -94,5 +90,35 @@ class MessageController extends Controller
         }
 
         return redirect()->route('dosen.dashboard')->with('success', 'Pesan berhasil dikirim!');
+    }
+
+    public function sent()
+    {
+        $messages = Message::where('sender_id', Auth::id())
+                            ->with('receiver') // Load nama penerima
+                            ->latest()
+                            ->get();
+
+        return view('messages.sent', compact('messages'));
+    }
+
+    public function destroy($id)
+    {
+        $message = Message::findOrFail($id);
+
+        if ($message->sender_id !== Auth::id()) {
+            abort(403, 'Anda tidak berhak menghapus pesan ini.');
+        }
+
+        $message->delete();
+
+        return back()->with('success', 'Pesan berhasil ditarik/dihapus.');
+    }
+
+    public function destroyAll()
+    {
+        Message::where('sender_id', Auth::id())->delete();
+
+        return back()->with('success', 'Semua riwayat pesan berhasil ditarik/dihapus.');
     }
 }

@@ -31,6 +31,9 @@
                     <a href="{{ route('messages.create') }}" class="block text-center bg-blue-600 text-white font-bold px-4 py-2 rounded hover:bg-blue-700 transition w-full shadow">
                         + Tulis Pesan
                     </a>
+                    <a href="{{ route('messages.sent') }}" class="block text-center text-blue-600 text-sm font-semibold hover:underline mt-3">
+                        📂 Lihat Riwayat / Tarik Pesan
+                    </a>
                 </div>
 
                 <div class="bg-white p-6 rounded-lg shadow-sm border-l-4 border-green-500 hover:shadow-md transition">

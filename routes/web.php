@@ -36,6 +36,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/pesan/kirim', [App\Http\Controllers\MessageController::class, 'store'])->name('messages.store');
     Route::get('/pesan/masuk', [App\Http\Controllers\MessageController::class, 'index'])->name('messages.index');
     Route::get('/pesan/baca/{id}', [App\Http\Controllers\MessageController::class, 'show'])->name('messages.show');
+    Route::get('/pesan/terkirim', [App\Http\Controllers\MessageController::class, 'sent'])->name('messages.sent');
+    Route::delete('/pesan/hapus-semua', [App\Http\Controllers\MessageController::class, 'destroyAll'])->name('messages.destroyAll');
+    Route::delete('/pesan/hapus/{id}', [App\Http\Controllers\MessageController::class, 'destroy'])->name('messages.destroy');
     Route::get('/dosen-dashboard', function () {
         if (!auth()->user()->isDosen()) {
             abort(403, 'Khusus Dosen');
