@@ -9,9 +9,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
     steps:
       - uses: actions/checkout@v4
 
@@ -19,47 +16,29 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
-          extensions: mbstring, bcmath, gd, mysql      
-      
+          extensions: mbstring, bcmath, gd, mysql, zip
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'npm'
 
-      # Laravel optimization: Install production dependencies
-      - name: Run composer install
+      - name: Install Composer dependencies
+        run: composer install --no-dev --optimize-autoloader --prefer-dist --no-progress
+
+      - name: Install npm and build assets
         run: |
-          composer install --no-dev --optimize-autoloader --prefer-dist --no-progress
+          npm install
+          npm run build
 
-      - name: Install npm dependencies
-        run: npm ci      - name: Build Vite assets
-        run: npm run build
-        env:
-          NODE_ENV: production
+      - name: Zip artifact for deployment
+        run: zip -r release.zip . -x ".git/*" ".github/*"
 
-      - name: Verify Vite build output
-        run: |
-          if [ ! -f "public/build/manifest.json" ]; then
-            echo "Error: Vite manifest not found!"
-            ls -la public/build/ || echo "Build directory doesn't exist"
-            exit 1
-          fi
-          echo "✓ Vite build successful"
-
-      # IMPORTANT: Verify the 'default' file exists before uploading
-      - name: Verify Nginx config exists
-        run: |
-          if [ ! -f "default" ]; then
-            echo "Error: 'default' Nginx config file not found in root!"
-            exit 1
-          fi
-
-      - name: Upload artifact for deployment job
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: php-app
-          path: .
+          path: release.zip
 
   deploy:
     runs-on: ubuntu-latest
@@ -69,7 +48,7 @@ jobs:
       contents: read
 
     steps:
-      - name: Download artifact from build job
+      - name: Download artifact
         uses: actions/download-artifact@v4
         with:
           name: php-app
@@ -85,5 +64,4 @@ jobs:
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'tugasakhirpaw'
-          slot-name: 'Production'
-          package: .
+          package: release.zip
