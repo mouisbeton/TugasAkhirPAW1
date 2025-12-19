@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules;
 
 class DosenController extends Controller
 {
@@ -13,13 +14,13 @@ class DosenController extends Controller
      */
     public function index()
     {
-        // Ambil user yang role-nya 'dosen'
-        $dosen = User::where('role', 'dosen')->latest()->get();
-        return view('admin.dosen.index', compact('dosen'));
+        // Ambil semua user yang role-nya 'dosen'
+        $dosens = User::where('role', 'dosen')->latest()->get();
+        return view('admin.dosen.index', compact('dosens'));
     }
 
     /**
-     * Form tambah dosen.
+     * Menampilkan form tambah dosen.
      */
     public function create()
     {
@@ -27,72 +28,77 @@ class DosenController extends Controller
     }
 
     /**
-     * Simpan data dosen baru.
+     * Menyimpan data dosen baru ke database.
      */
     public function store(Request $request)
     {
+        // 1. Validasi Input
         $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|min:6',
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
+        // 2. Simpan ke Database
         User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => 'dosen', // Role otomatis dosen
-            'department_id' => 1, // Default dulu
-            'angkatan' => null,   // Dosen tidak punya angkatan
+            'role' => 'dosen', // Set role otomatis jadi dosen
+            'angkatan' => null, // Dosen tidak punya angkatan, set null
+            // 'department_id' => 1,  <-- INI YANG BIKIN ERROR, KITA HAPUS
         ]);
 
-        return redirect()->route('dosen.index');
+        // 3. Kembali ke halaman index dengan pesan sukses
+        return redirect()->route('dosen.index')->with('success', 'Dosen berhasil ditambahkan!');
     }
 
     /**
-     * Form edit dosen.
+     * Menampilkan form edit dosen.
      */
-    public function edit(string $id)
+    public function edit($id)
     {
         $dosen = User::findOrFail($id);
         return view('admin.dosen.edit', compact('dosen'));
     }
 
     /**
-     * Update data dosen.
+     * Mengupdate data dosen.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, $id)
     {
         $dosen = User::findOrFail($id);
 
         $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,'.$id,
-            'password' => 'nullable|min:6',
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,'.$dosen->id],
         ]);
 
-        $dataToUpdate = [
-            'name' => $request->name,
-            'email' => $request->email,
-        ];
+        // Update data dasar
+        $dosen->name = $request->name;
+        $dosen->email = $request->email;
 
+        // Jika password diisi, update passwordnya
         if ($request->filled('password')) {
-            $dataToUpdate['password'] = Hash::make($request->password);
+            $request->validate([
+                'password' => ['confirmed', Rules\Password::defaults()],
+            ]);
+            $dosen->password = Hash::make($request->password);
         }
 
-        $dosen->update($dataToUpdate);
+        $dosen->save();
 
-        return redirect()->route('dosen.index');
+        return redirect()->route('dosen.index')->with('success', 'Data Dosen berhasil diperbarui!');
     }
 
     /**
-     * Hapus data dosen.
+     * Menghapus data dosen.
      */
-    public function destroy(string $id)
+    public function destroy($id)
     {
         $dosen = User::findOrFail($id);
         $dosen->delete();
 
-        return redirect()->route('dosen.index');
+        return redirect()->route('dosen.index')->with('success', 'Dosen berhasil dihapus!');
     }
 }

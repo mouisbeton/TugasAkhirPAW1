@@ -6,21 +6,23 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    public function up()
+    public function up(): void
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
+            
+            // Pastikan baris 'role' ini SUDAH ADA (hasil perbaikan sebelumnya)
+            $table->string('role')->default('mahasiswa'); 
+            
             $table->string('name');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             
-            $table->enum('role', ['admin', 'dosen', 'mahasiswa'])->default('mahasiswa');
-
-            $table->foreignId('department_id')->nullable()->constrained('departments')->onDelete('set null');
-
-            $table->year('angkatan')->nullable();
-
+            // --- TAMBAHKAN BARIS INI (Supaya error 'angkatan' hilang) ---
+            $table->integer('angkatan')->nullable(); 
+            // -----------------------------------------------------------
+            
             $table->rememberToken();
             $table->timestamps();
         });

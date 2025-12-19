@@ -36,13 +36,16 @@ public function store(LoginRequest $request): RedirectResponse
     }
 
     public function destroy(Request $request): RedirectResponse
-    {
-        Auth::guard('web')->logout();
+{
+    Auth::guard('web')->logout();
 
-        $request->session()->invalidate();
+    $request->session()->invalidate();
 
-        $request->session()->regenerateToken();
+    $request->session()->regenerateToken();
 
-        return redirect('/');
-    }
+    // GANTI BAGIAN INI:
+    // Dari: return redirect('/'); 
+    // Jadi:
+    return redirect('/login'); 
+}
 }
